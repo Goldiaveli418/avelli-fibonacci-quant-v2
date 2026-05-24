@@ -382,17 +382,21 @@ if newHigh
     lastPH    := pivHigh
     lastPHBar := isHTF ? bar_index : bar_index - pivotRight
     if showPivRay
-        line.delete(pivHRayLine)  ;  label.delete(pivHRayLbl)
+        line.delete(pivHRayLine)
+        label.delete(pivHRayLbl)
         [ln, lb]    = drawPivRay(lastPH, true, lastPHBar)
-        pivHRayLine := ln         ;  pivHRayLbl := lb
+        pivHRayLine := ln
+        pivHRayLbl  := lb
 
 if newLow
     lastPL    := pivLow
     lastPLBar := isHTF ? bar_index : bar_index - pivotRight
     if showPivRay
-        line.delete(pivLRayLine)  ;  label.delete(pivLRayLbl)
+        line.delete(pivLRayLine)
+        label.delete(pivLRayLbl)
         [ln, lb]    = drawPivRay(lastPL, false, lastPLBar)
-        pivLRayLine := ln         ;  pivLRayLbl := lb
+        pivLRayLine := ln
+        pivLRayLbl  := lb
 
 if (newHigh or newLow) and not na(lastPH) and not na(lastPL)
     clearArrays(allLines, allLbs, allBoxes)
@@ -467,9 +471,11 @@ if showTF3 and (tf3NewH or tf3NewL) and not na(tf3PH) and not na(tf3PL)
 hasPivots = not na(lastPH) and not na(lastPL)
 pivRng    = hasPivots ? lastPH - lastPL : na
 
-upGP_hi = hasPivots ? lastPH - pivRng * 0.618 : na  ;  upGP_lo = hasPivots ? lastPH - pivRng * 0.650 : na
+upGP_hi = hasPivots ? lastPH - pivRng * 0.618 : na
+upGP_lo = hasPivots ? lastPH - pivRng * 0.650 : na
 up786   = hasPivots ? lastPH - pivRng * 0.786  : na
-dnGP_lo = hasPivots ? lastPL + pivRng * 0.618  : na  ;  dnGP_hi = hasPivots ? lastPL + pivRng * 0.650 : na
+dnGP_lo = hasPivots ? lastPL + pivRng * 0.618 : na
+dnGP_hi = hasPivots ? lastPL + pivRng * 0.650 : na
 dn786   = hasPivots ? lastPL + pivRng * 0.786  : na
 
 isCurr    = hasPivots and bar_index > math.max(lastPHBar, lastPLBar)
@@ -549,10 +555,14 @@ if showCloseShape and zoneClose and not zoneClose[1]
 zoneLabel = upGPt ? "UP GP" : dnGPt ? "DN GP" : up786t ? "UP 0.786" : dn786t ? "DN 0.786" : "Fib Zone"
 baseMsg   = " | Trend: " + (uptrend ? "UP" : "DN") + " | EMA: " + (emaAtClose ? "Y" : "N") + " | Vol: " + (volSpike ? "Y" : "N") + " | " + str.tostring(close, "#.##")
 
-if zoneTouch  ;  alert("TOUCH | " + zoneLabel + baseMsg, alert.freq_once_per_bar)
-if zoneClose  ;  alert("CLOSE | " + zoneLabel + baseMsg, alert.freq_once_per_bar_close)
-if bullEntry  ;  alert("LONG SETUP | hammer at fib zone" + baseMsg, alert.freq_once_per_bar)
-if bearEntry  ;  alert("SHORT SETUP | pin bar at fib zone" + baseMsg, alert.freq_once_per_bar)
+if zoneTouch
+    alert("TOUCH | " + zoneLabel + baseMsg, alert.freq_once_per_bar)
+if zoneClose
+    alert("CLOSE | " + zoneLabel + baseMsg, alert.freq_once_per_bar_close)
+if bullEntry
+    alert("LONG SETUP | hammer at fib zone" + baseMsg, alert.freq_once_per_bar)
+if bearEntry
+    alert("SHORT SETUP | pin bar at fib zone" + baseMsg, alert.freq_once_per_bar)
 
 alertcondition(zoneTouch, "Fib Zone — Touch",      "Price touched a fib entry zone")
 alertcondition(zoneClose, "Fib Zone — Close",      "Candle closed inside fib entry zone")
