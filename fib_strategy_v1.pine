@@ -1,0 +1,536 @@
+//@version=6
+indicator("Fib Strategy v1", overlay=true, max_lines_count=500, max_labels_count=500, max_boxes_count=50)
+
+// ─── Groups ───────────────────────────────────────────────────────────────────
+g_pivot    = "Primary Pivot"
+g_levels   = "Fib Levels"
+g_fibstyle = "Fib Style"
+g_boxes    = "Fib Boxes"
+g_tf2      = "TF2 Overlay"
+g_tf3      = "TF3 Overlay"
+g_ema      = "EMA Settings"
+g_vol      = "Volume Settings"
+g_zones    = "Zone Settings"
+g_entry    = "Entry Signal"
+g_shapes   = "Zone Shapes"
+g_table    = "Status Table"
+
+// ─── Primary Pivot ────────────────────────────────────────────────────────────
+pivotLeft     = input.int(5,  "Lookback Left",  minval=1, group=g_pivot)
+pivotRight    = input.int(5,  "Lookback Right", minval=1, group=g_pivot)
+pivotTF       = input.timeframe("", "Timeframe (blank = chart)", group=g_pivot)
+showPivRay    = input.bool(true, "Show Pivot H/L Ray", group=g_pivot)
+colPivH       = input.color(color.red,   "High ray",  inline="pch", group=g_pivot)
+pivHStyleIn   = input.string("Dashed", "", options=["Solid","Dashed","Dotted"], inline="pch", group=g_pivot)
+pivHWidth     = input.int(1, "", minval=1, maxval=4, inline="pch", group=g_pivot)
+colPivL       = input.color(color.green, "Low ray",   inline="pcl", group=g_pivot)
+pivLStyleIn   = input.string("Dashed", "", options=["Solid","Dashed","Dotted"], inline="pcl", group=g_pivot)
+pivLWidth     = input.int(1, "", minval=1, maxval=4, inline="pcl", group=g_pivot)
+pivLblPos     = input.string("Right", "Label position", options=["Left","Right"], group=g_pivot)
+pivLblStyleIn = input.string("Label Box", "Label style", options=["Plain","Label Box"], group=g_pivot)
+pivLblSizeIn  = input.string("Small", "Label size", options=["Tiny","Small","Normal","Large"], group=g_pivot)
+pivLblTextCol = input.color(color.white, "Label text color", group=g_pivot)
+pivLblOffset  = input.int(3, "Label offset (bars)", minval=0, group=g_pivot)
+
+// ─── Fib Levels ───────────────────────────────────────────────────────────────
+fibMode  = input.string("Both", "Fib Display", options=["Both","With Trend","Against Trend"], group=g_levels)
+fibLeft  = input.int(10, "Extend left (bars)", minval=0, group=g_levels)
+
+show00   = input.bool(true,  "0.0   Origin",       inline="f0",   group=g_levels)
+col00    = input.color(color.new(color.gray,  40), "", inline="f0",   group=g_levels)
+show236  = input.bool(true,  "0.236 TP1",           inline="f236", group=g_levels)
+col236   = input.color(color.lime,                "", inline="f236", group=g_levels)
+show382  = input.bool(false, "0.382 Retrace",        inline="f382", group=g_levels)
+col382   = input.color(color.new(color.green, 20), "", inline="f382", group=g_levels)
+show500  = input.bool(false, "0.5   Mid",            inline="f500", group=g_levels)
+col500   = input.color(color.new(color.white, 40), "", inline="f500", group=g_levels)
+show618  = input.bool(true,  "0.618 Golden Pocket",  inline="f618", group=g_levels)
+col618   = input.color(color.aqua,                "", inline="f618", group=g_levels)
+show65   = input.bool(true,  "0.65  Golden Pocket",  inline="f65",  group=g_levels)
+col65    = input.color(color.teal,                "", inline="f65",  group=g_levels)
+show786  = input.bool(true,  "0.786 Entry",          inline="f786", group=g_levels)
+col786   = input.color(color.yellow,              "", inline="f786", group=g_levels)
+show886  = input.bool(true,  "0.886 SL ref",         inline="f886", group=g_levels)
+col886   = input.color(color.red,                 "", inline="f886", group=g_levels)
+show100  = input.bool(true,  "1.0   Opposite",       inline="f100", group=g_levels)
+col100   = input.color(color.new(color.gray,  40), "", inline="f100", group=g_levels)
+
+// ─── Fib Style ────────────────────────────────────────────────────────────────
+fibLineStyleIn = input.string("Solid", "Line style", options=["Solid","Dashed","Dotted"],        group=g_fibstyle)
+fibLineWidth   = input.int(1, "Line width",  minval=1, maxval=4,                                  group=g_fibstyle)
+fibEmaWidth    = input.int(2, "EMA-confluent width", minval=1, maxval=4,                          group=g_fibstyle)
+fibLblSide     = input.string("Right", "Label side", options=["Left","Right"],                    group=g_fibstyle)
+fibLblSizeIn   = input.string("Tiny",  "Label size", options=["Tiny","Small","Normal","Large"],   group=g_fibstyle)
+fibLblBg       = input.string("Transparent", "Label BG", options=["Transparent","Colored"],       group=g_fibstyle)
+showFibPrice   = input.bool(true,  "Price on label", group=g_fibstyle)
+showFibRatio   = input.bool(true,  "Ratio on label", group=g_fibstyle)
+showFibName    = input.bool(true,  "Name on label",  group=g_fibstyle)
+showDirArrow   = input.bool(true,  "▲/▼ arrow",      group=g_fibstyle)
+
+// ─── Fib Boxes ────────────────────────────────────────────────────────────────
+showBox        = input.bool(true, "Show Golden Pocket box",                           group=g_boxes)
+colBoxUp       = input.color(color.new(color.aqua,    80), "Up fill",                 group=g_boxes)
+colBoxDn       = input.color(color.new(color.orange,  80), "Down fill",               group=g_boxes)
+colBoxBorderUp = input.color(color.new(color.aqua,    50), "Up border",  inline="bb", group=g_boxes)
+colBoxBorderDn = input.color(color.new(color.orange,  50), "Down border",inline="bb", group=g_boxes)
+boxBorderWidth = input.int(1, "Border width", minval=1, maxval=4,                      group=g_boxes)
+
+// ─── TF2 Overlay ──────────────────────────────────────────────────────────────
+showTF2    = input.bool(true,  "Enable TF2 Overlay",                              group=g_tf2)
+tf2        = input.timeframe("60", "Timeframe",                                   group=g_tf2)
+tf2Label   = input.string("1H", "Label prefix",                                   group=g_tf2)
+tf2Left    = input.int(5, "Pivot Left",  minval=1,                                group=g_tf2)
+tf2Right   = input.int(5, "Pivot Right", minval=1,                                group=g_tf2)
+tf2Width   = input.int(2, "Line Width",  minval=1, maxval=4,                      group=g_tf2)
+tf2Alpha   = input.int(40, "Transparency (0=solid 90=faint)", minval=0, maxval=90, group=g_tf2)
+showTF2Ray = input.bool(true,  "Show TF2 pivot rays",                             group=g_tf2)
+showTF2Lbl = input.bool(true,  "Show TF2 labels",                                 group=g_tf2)
+showTF2Box = input.bool(true,  "Show TF2 GP box",                                 group=g_tf2)
+
+// ─── TF3 Overlay ──────────────────────────────────────────────────────────────
+showTF3    = input.bool(true,  "Enable TF3 Overlay",                              group=g_tf3)
+tf3        = input.timeframe("240", "Timeframe",                                  group=g_tf3)
+tf3Label   = input.string("4H", "Label prefix",                                   group=g_tf3)
+tf3Left    = input.int(5, "Pivot Left",  minval=1,                                group=g_tf3)
+tf3Right   = input.int(5, "Pivot Right", minval=1,                                group=g_tf3)
+tf3Width   = input.int(3, "Line Width",  minval=1, maxval=4,                      group=g_tf3)
+tf3Alpha   = input.int(20, "Transparency (0=solid 90=faint)", minval=0, maxval=90, group=g_tf3)
+showTF3Ray = input.bool(true,  "Show TF3 pivot rays",                             group=g_tf3)
+showTF3Lbl = input.bool(true,  "Show TF3 labels",                                 group=g_tf3)
+showTF3Box = input.bool(true,  "Show TF3 GP box",                                 group=g_tf3)
+
+// ─── EMA Settings ─────────────────────────────────────────────────────────────
+showEma1  = input.bool(true,  "EMA 1", inline="e1", group=g_ema)
+ema1Len   = input.int(50,  "", minval=1,             inline="e1", group=g_ema)
+col_ema1  = input.color(#F0C040, "",                 inline="e1", group=g_ema)
+ema1Width = input.int(1, "", minval=1, maxval=4,     inline="e1", group=g_ema)
+
+showEma2  = input.bool(true,  "EMA 2", inline="e2", group=g_ema)
+ema2Len   = input.int(100, "", minval=1,             inline="e2", group=g_ema)
+col_ema2  = input.color(#F08040, "",                 inline="e2", group=g_ema)
+ema2Width = input.int(1, "", minval=1, maxval=4,     inline="e2", group=g_ema)
+
+showEma3  = input.bool(true,  "EMA 3", inline="e3", group=g_ema)
+ema3Len   = input.int(200, "", minval=1,             inline="e3", group=g_ema)
+col_ema3  = input.color(#E04040, "",                 inline="e3", group=g_ema)
+ema3Width = input.int(2, "", minval=1, maxval=4,     inline="e3", group=g_ema)
+
+emaTol   = input.float(0.1, "EMA Confluence Tolerance %", minval=0.01, step=0.01, group=g_ema)
+trendEma = input.string("EMA 1", "Trend EMA (close > = uptrend)", options=["EMA 1","EMA 2","EMA 3"], group=g_ema)
+
+// ─── Volume Settings ──────────────────────────────────────────────────────────
+volAvgLen    = input.int(20,    "Volume Avg Length", minval=1,   group=g_vol)
+volMult      = input.float(2.0, "Spike Multiplier",  minval=1.0, step=0.1, group=g_vol)
+showVolColor = input.bool(true, "Color candles on spike",        group=g_vol)
+colVolUp     = input.color(color.new(color.purple,  50), "Bull spike", inline="vc", group=g_vol)
+colVolDn     = input.color(color.new(color.fuchsia, 50), "Bear spike", inline="vc", group=g_vol)
+
+// ─── Zone Settings ────────────────────────────────────────────────────────────
+zone786Tol = input.float(0.2, "0.786 close tolerance %", minval=0.01, step=0.05, group=g_zones)
+
+// ─── Entry Signal ─────────────────────────────────────────────────────────────
+showEntry    = input.bool(true, "Show Entry Signals",                                   group=g_entry)
+colBullEntry = input.color(color.new(color.lime, 0), "Bull",  inline="ec",              group=g_entry)
+colBearEntry = input.color(color.new(color.red,  0), "Bear",  inline="ec",              group=g_entry)
+entrySzIn    = input.string("Normal", "Size", options=["Small","Normal","Large"],        group=g_entry)
+hammerRatio  = input.float(2.0, "Min wick:body ratio", minval=1.0, step=0.1,           group=g_entry)
+requireVol   = input.bool(true,  "Require vol spike",      group=g_entry)
+requireEMA   = input.bool(false, "Require EMA confluence", group=g_entry)
+requireZone  = input.bool(true,  "Require fib zone touch", group=g_entry)
+
+// ─── Zone Shapes ──────────────────────────────────────────────────────────────
+showTouchShape = input.bool(true, "Zone Touch",  inline="zt", group=g_shapes)
+colTouchShape  = input.color(color.new(color.yellow, 20), "", inline="zt", group=g_shapes)
+touchSzIn      = input.string("Small", "Size", options=["Tiny","Small","Normal","Large"], inline="zt", group=g_shapes)
+touchAbove     = input.bool(false, "Above bar", group=g_shapes)
+
+showCloseShape = input.bool(true, "Zone Close", inline="zc", group=g_shapes)
+colCloseShape  = input.color(color.new(color.aqua, 20), "", inline="zc", group=g_shapes)
+closeSzIn      = input.string("Small", "Size", options=["Tiny","Small","Normal","Large"], inline="zc", group=g_shapes)
+closeAbove     = input.bool(false, "Above bar", group=g_shapes)
+
+// ─── Status Table ─────────────────────────────────────────────────────────────
+showTable    = input.bool(true, "Show table", group=g_table)
+tablePosIn   = input.string("Bottom Right", "Position", options=["Bottom Right","Bottom Left","Top Right","Top Left","Middle Right","Middle Left"], group=g_table)
+tblBgCol     = input.color(color.new(color.black, 70), "Background", group=g_table)
+tblBorderCol = input.color(color.new(color.gray,  50), "Border",     group=g_table)
+tblHdrCol    = input.color(color.gray,  "Label color", group=g_table)
+tblValCol    = input.color(color.white, "Value color", group=g_table)
+
+// ─── Converters ───────────────────────────────────────────────────────────────
+lineStyleConv(s) =>
+    s == "Dashed" ? line.style_dashed : s == "Dotted" ? line.style_dotted : line.style_solid
+
+labelSizeConv(s) =>
+    s == "Tiny" ? size.tiny : s == "Small" ? size.small : s == "Large" ? size.large : size.normal
+
+tablePosConv(s) =>
+    s == "Bottom Left"   ? position.bottom_left  :
+     s == "Top Right"    ? position.top_right    :
+     s == "Top Left"     ? position.top_left     :
+     s == "Middle Right" ? position.middle_right :
+     s == "Middle Left"  ? position.middle_left  :
+     position.bottom_right
+
+// ─── EMAs ─────────────────────────────────────────────────────────────────────
+ema1 = ta.ema(close, ema1Len)
+ema2 = ta.ema(close, ema2Len)
+ema3 = ta.ema(close, ema3Len)
+
+plot(showEma1 ? ema1 : na, "EMA 1", color=col_ema1, linewidth=ema1Width)
+plot(showEma2 ? ema2 : na, "EMA 2", color=col_ema2, linewidth=ema2Width)
+plot(showEma3 ? ema3 : na, "EMA 3", color=col_ema3, linewidth=ema3Width)
+
+// ─── Volume ───────────────────────────────────────────────────────────────────
+avgVol   = ta.sma(volume, volAvgLen)
+volSpike = volume > avgVol * volMult
+volColor = close >= open ? colVolUp : colVolDn
+barcolor(showVolColor and volSpike ? volColor : na)
+
+// ─── Trend ────────────────────────────────────────────────────────────────────
+trendEmaVal = trendEma == "EMA 1" ? ema1 : trendEma == "EMA 2" ? ema2 : ema3
+uptrend     = close > trendEmaVal
+
+// ─── Pivot Detection ──────────────────────────────────────────────────────────
+_tf   = pivotTF == "" ? timeframe.period : pivotTF
+isHTF = pivotTF != ""
+
+[pivHigh, pivLow] = request.security(syminfo.tickerid, _tf,
+ [ta.pivothigh(high, pivotLeft, pivotRight), ta.pivotlow(low, pivotLeft, pivotRight)],
+ lookahead=barmerge.lookahead_off)
+
+[pivH_TF2, pivL_TF2] = request.security(syminfo.tickerid, tf2,
+ [ta.pivothigh(high, tf2Left, tf2Right), ta.pivotlow(low, tf2Left, tf2Right)],
+ lookahead=barmerge.lookahead_off)
+
+[pivH_TF3, pivL_TF3] = request.security(syminfo.tickerid, tf3,
+ [ta.pivothigh(high, tf3Left, tf3Right), ta.pivotlow(low, tf3Left, tf3Right)],
+ lookahead=barmerge.lookahead_off)
+
+// ─── Pivot State ──────────────────────────────────────────────────────────────
+var float lastPH = na  ;  var int lastPHBar = 0
+var float lastPL = na  ;  var int lastPLBar = 0
+var float tf2PH  = na  ;  var int tf2PHBar  = 0
+var float tf2PL  = na  ;  var int tf2PLBar  = 0
+var float tf3PH  = na  ;  var int tf3PHBar  = 0
+var float tf3PL  = na  ;  var int tf3PLBar  = 0
+
+newHigh  = not na(pivHigh)  ;  newLow  = not na(pivLow)
+tf2NewH  = not na(pivH_TF2) ;  tf2NewL = not na(pivL_TF2)
+tf3NewH  = not na(pivH_TF3) ;  tf3NewL = not na(pivL_TF3)
+
+// ─── Fib Helpers ──────────────────────────────────────────────────────────────
+var fibRatios = array.from(0.0, 0.236, 0.382, 0.5, 0.618, 0.65, 0.786, 0.886, 1.0)
+var fibNames  = array.from("Origin","TP1","Retrace","Mid","GP","GP","Entry","SL","Opp")
+
+fibPrice(hi, lo, ratio, isUp) =>
+    isUp ? hi - (hi - lo) * ratio : lo + (hi - lo) * ratio
+
+emaConf(price) =>
+    t = price * emaTol / 100.0
+    (showEma1 and math.abs(ema1 - price) <= t) or
+     (showEma2 and math.abs(ema2 - price) <= t) or
+     (showEma3 and math.abs(ema3 - price) <= t)
+
+fibColor(r) =>
+    r == 0.236 ? col236 : r == 0.382 ? col382 : r == 0.5   ? col500 :
+     r == 0.618 ? col618 : r == 0.65  ? col65  : r == 0.786 ? col786 :
+     r == 0.886 ? col886 : r == 1.0   ? col100 : col00
+
+levelEnabled(r) =>
+    r == 0.0 ? show00 : r == 0.236 ? show236 : r == 0.382 ? show382 :
+     r == 0.5 ? show500 : r == 0.618 ? show618 : r == 0.65 ? show65 :
+     r == 0.786 ? show786 : r == 0.886 ? show886 : show100
+
+buildLabel(ratio, name, price, isUp) =>
+    (showDirArrow ? (isUp ? "▲ " : "▼ ") : "") +
+     (showFibRatio ? str.tostring(ratio, "#.###") : "") +
+     (showFibName  ? "  " + name : "") +
+     (showFibPrice ? "  " + str.tostring(price, "#.####") : "")
+
+// ─── Drawing Storage ──────────────────────────────────────────────────────────
+var line[]  allLines = array.new_line()  ;  var label[] allLbs  = array.new_label()  ;  var box[] allBoxes = array.new_box()
+var line[]  tf2Lines = array.new_line()  ;  var label[] tf2Lbs  = array.new_label()  ;  var box[] tf2Boxes = array.new_box()
+var line[]  tf3Lines = array.new_line()  ;  var label[] tf3Lbs  = array.new_label()  ;  var box[] tf3Boxes = array.new_box()
+
+// Pivot ray vars
+var line  pivHRayLine = na  ;  var label pivHRayLbl = na
+var line  pivLRayLine = na  ;  var label pivLRayLbl = na
+var line  tf2HRay = na      ;  var label tf2HLbl    = na
+var line  tf2LRay = na      ;  var label tf2LLbl    = na
+var line  tf3HRay = na      ;  var label tf3HLbl    = na
+var line  tf3LRay = na      ;  var label tf3LLbl    = na
+
+clearArrays(lns, lbs, bxs) =>
+    for ln in lns  ;  line.delete(ln)
+    array.clear(lns)
+    for lb in lbs  ;  label.delete(lb)
+    array.clear(lbs)
+    for bx in bxs  ;  box.delete(bx)
+    array.clear(bxs)
+
+// ─── Primary Draw Functions ───────────────────────────────────────────────────
+pivLblSty(isHigh) =>
+    if pivLblStyleIn == "Plain"
+        label.style_none
+    else
+        pivLblPos == "Left" ? label.style_label_right : label.style_label_left
+
+drawPivRay(price, isHigh, anchorBar) =>
+    col    = isHigh ? colPivH : colPivL
+    sty    = isHigh ? lineStyleConv(pivHStyleIn) : lineStyleConv(pivLStyleIn)
+    wid    = isHigh ? pivHWidth : pivLWidth
+    txt    = isHigh ? "H: " + str.tostring(price,"#.####") : "L: " + str.tostring(price,"#.####")
+    lblBar = pivLblPos == "Left" ? anchorBar - fibLeft : bar_index + pivLblOffset
+    ln     = line.new(anchorBar - fibLeft, price, bar_index + 1, price,
+              extend=extend.right, color=col, width=wid, style=sty)
+    lb     = label.new(lblBar, price, txt, style=pivLblSty(isHigh),
+              color=col, textcolor=pivLblTextCol, size=labelSizeConv(pivLblSizeIn))
+    [ln, lb]
+
+drawFibSet(hi, lo, isUp, phBar, plBar) =>
+    leftBar = math.min(phBar, plBar) - fibLeft
+    lblSty  = fibLblSide == "Left" ? label.style_label_right : label.style_label_left
+    lblBar  = fibLblSide == "Left" ? leftBar : bar_index + 3
+    for i = 0 to array.size(fibRatios) - 1
+        r    = array.get(fibRatios, i)
+        name = array.get(fibNames,  i)
+        if levelEnabled(r)
+            p   = fibPrice(hi, lo, r, isUp)
+            col = fibColor(r)
+            wid = emaConf(p) ? fibEmaWidth : fibLineWidth
+            ln  = line.new(leftBar, p, bar_index + 1, p, extend=extend.right,
+                    color=col, width=wid, style=lineStyleConv(fibLineStyleIn))
+            array.push(allLines, ln)
+            bgC = fibLblBg == "Colored" ? color.new(col, 70) : color.new(color.black, 100)
+            lb  = label.new(lblBar, p, buildLabel(r, name, p, isUp), style=lblSty,
+                    color=bgC, textcolor=col, size=labelSizeConv(fibLblSizeIn))
+            array.push(allLbs, lb)
+    if showBox
+        gp1 = fibPrice(hi, lo, 0.618, isUp)
+        gp2 = fibPrice(hi, lo, 0.65,  isUp)
+        bx  = box.new(leftBar, math.max(gp1, gp2), bar_index + 1, math.min(gp1, gp2),
+                bgcolor=isUp ? colBoxUp : colBoxDn,
+                border_color=isUp ? colBoxBorderUp : colBoxBorderDn,
+                border_width=boxBorderWidth, extend=extend.right)
+        array.push(allBoxes, bx)
+
+// ─── Overlay Draw Function (TF2 / TF3) ───────────────────────────────────────
+drawOverlay(hi, lo, isUp, phBar, plBar, lns, lbs, bxs, lw, alpha, showLbls, showBx, tfLbl) =>
+    leftBar = math.min(phBar, plBar) - fibLeft
+    for i = 0 to array.size(fibRatios) - 1
+        r = array.get(fibRatios, i)
+        if levelEnabled(r)
+            p   = fibPrice(hi, lo, r, isUp)
+            col = color.new(fibColor(r), alpha)
+            ln  = line.new(leftBar, p, bar_index + 1, p, extend=extend.right,
+                    color=col, width=lw, style=lineStyleConv(fibLineStyleIn))
+            array.push(lns, ln)
+            if showLbls
+                arrow = showDirArrow ? (isUp ? "▲ " : "▼ ") : ""
+                txt   = arrow + "[" + tfLbl + "] " + str.tostring(r, "#.###")
+                lb    = label.new(bar_index + 3, p, txt, style=label.style_label_left,
+                          color=color.new(color.black, 100), textcolor=col, size=size.tiny)
+                array.push(lbs, lb)
+    if showBx
+        gp1 = fibPrice(hi, lo, 0.618, isUp)
+        gp2 = fibPrice(hi, lo, 0.65,  isUp)
+        bx  = box.new(leftBar, math.max(gp1, gp2), bar_index + 1, math.min(gp1, gp2),
+                bgcolor=isUp ? color.new(colBoxUp, alpha + 20) : color.new(colBoxDn, alpha + 20),
+                border_color=isUp ? color.new(colBoxBorderUp, alpha) : color.new(colBoxBorderDn, alpha),
+                border_width=1, extend=extend.right)
+        array.push(bxs, bx)
+
+drawOvRay(price, isHigh, alpha, lw, tfLbl) =>
+    col    = color.new(isHigh ? colPivH : colPivL, alpha)
+    sty    = isHigh ? lineStyleConv(pivHStyleIn) : lineStyleConv(pivLStyleIn)
+    txt    = "[" + tfLbl + "] " + (isHigh ? "H: " : "L: ") + str.tostring(price, "#.####")
+    lblBar = pivLblPos == "Left" ? bar_index - fibLeft : bar_index + pivLblOffset
+    ln     = line.new(bar_index - fibLeft, price, bar_index + 1, price,
+              extend=extend.right, color=col, width=lw, style=sty)
+    lb     = label.new(lblBar, price, txt,
+              style=pivLblPos == "Left" ? label.style_label_right : label.style_label_left,
+              color=col, textcolor=pivLblTextCol, size=labelSizeConv(pivLblSizeIn))
+    [ln, lb]
+
+// ─── Update Primary Pivots ────────────────────────────────────────────────────
+if newHigh
+    lastPH    := pivHigh
+    lastPHBar := isHTF ? bar_index : bar_index - pivotRight
+    if showPivRay
+        line.delete(pivHRayLine)  ;  label.delete(pivHRayLbl)
+        [ln, lb]    = drawPivRay(lastPH, true, lastPHBar)
+        pivHRayLine := ln         ;  pivHRayLbl := lb
+
+if newLow
+    lastPL    := pivLow
+    lastPLBar := isHTF ? bar_index : bar_index - pivotRight
+    if showPivRay
+        line.delete(pivLRayLine)  ;  label.delete(pivLRayLbl)
+        [ln, lb]    = drawPivRay(lastPL, false, lastPLBar)
+        pivLRayLine := ln         ;  pivLRayLbl := lb
+
+if (newHigh or newLow) and not na(lastPH) and not na(lastPL)
+    clearArrays(allLines, allLbs, allBoxes)
+    drawUp = fibMode == "Both" or (fibMode == "With Trend"    and     uptrend) or (fibMode == "Against Trend" and not uptrend)
+    drawDn = fibMode == "Both" or (fibMode == "With Trend"    and not uptrend) or (fibMode == "Against Trend" and     uptrend)
+    if drawUp  ;  drawFibSet(lastPH, lastPL, true,  lastPHBar, lastPLBar)
+    if drawDn  ;  drawFibSet(lastPH, lastPL, false, lastPHBar, lastPLBar)
+
+// ─── Update TF2 Pivots ────────────────────────────────────────────────────────
+if tf2NewH
+    tf2PH := pivH_TF2  ;  tf2PHBar := bar_index
+    if showTF2 and showTF2Ray
+        line.delete(tf2HRay)  ;  label.delete(tf2HLbl)
+        [ln, lb] = drawOvRay(tf2PH, true, tf2Alpha, tf2Width, tf2Label)
+        tf2HRay := ln  ;  tf2HLbl := lb
+
+if tf2NewL
+    tf2PL := pivL_TF2  ;  tf2PLBar := bar_index
+    if showTF2 and showTF2Ray
+        line.delete(tf2LRay)  ;  label.delete(tf2LLbl)
+        [ln, lb] = drawOvRay(tf2PL, false, tf2Alpha, tf2Width, tf2Label)
+        tf2LRay := ln  ;  tf2LLbl := lb
+
+if showTF2 and (tf2NewH or tf2NewL) and not na(tf2PH) and not na(tf2PL)
+    clearArrays(tf2Lines, tf2Lbs, tf2Boxes)
+    drawUp2 = fibMode == "Both" or (fibMode == "With Trend" and uptrend) or (fibMode == "Against Trend" and not uptrend)
+    drawDn2 = fibMode == "Both" or (fibMode == "With Trend" and not uptrend) or (fibMode == "Against Trend" and uptrend)
+    if drawUp2  ;  drawOverlay(tf2PH, tf2PL, true,  tf2PHBar, tf2PLBar, tf2Lines, tf2Lbs, tf2Boxes, tf2Width, tf2Alpha, showTF2Lbl, showTF2Box, tf2Label)
+    if drawDn2  ;  drawOverlay(tf2PH, tf2PL, false, tf2PHBar, tf2PLBar, tf2Lines, tf2Lbs, tf2Boxes, tf2Width, tf2Alpha, showTF2Lbl, showTF2Box, tf2Label)
+
+// ─── Update TF3 Pivots ────────────────────────────────────────────────────────
+if tf3NewH
+    tf3PH := pivH_TF3  ;  tf3PHBar := bar_index
+    if showTF3 and showTF3Ray
+        line.delete(tf3HRay)  ;  label.delete(tf3HLbl)
+        [ln, lb] = drawOvRay(tf3PH, true, tf3Alpha, tf3Width, tf3Label)
+        tf3HRay := ln  ;  tf3HLbl := lb
+
+if tf3NewL
+    tf3PL := pivL_TF3  ;  tf3PLBar := bar_index
+    if showTF3 and showTF3Ray
+        line.delete(tf3LRay)  ;  label.delete(tf3LLbl)
+        [ln, lb] = drawOvRay(tf3PL, false, tf3Alpha, tf3Width, tf3Label)
+        tf3LRay := ln  ;  tf3LLbl := lb
+
+if showTF3 and (tf3NewH or tf3NewL) and not na(tf3PH) and not na(tf3PL)
+    clearArrays(tf3Lines, tf3Lbs, tf3Boxes)
+    drawUp3 = fibMode == "Both" or (fibMode == "With Trend" and uptrend) or (fibMode == "Against Trend" and not uptrend)
+    drawDn3 = fibMode == "Both" or (fibMode == "With Trend" and not uptrend) or (fibMode == "Against Trend" and uptrend)
+    if drawUp3  ;  drawOverlay(tf3PH, tf3PL, true,  tf3PHBar, tf3PLBar, tf3Lines, tf3Lbs, tf3Boxes, tf3Width, tf3Alpha, showTF3Lbl, showTF3Box, tf3Label)
+    if drawDn3  ;  drawOverlay(tf3PH, tf3PL, false, tf3PHBar, tf3PLBar, tf3Lines, tf3Lbs, tf3Boxes, tf3Width, tf3Alpha, showTF3Lbl, showTF3Box, tf3Label)
+
+// ─── Zone Math (all 3 TFs) ────────────────────────────────────────────────────
+hasPivots = not na(lastPH) and not na(lastPL)
+pivRng    = hasPivots ? lastPH - lastPL : na
+
+upGP_hi = hasPivots ? lastPH - pivRng * 0.618 : na  ;  upGP_lo = hasPivots ? lastPH - pivRng * 0.650 : na
+up786   = hasPivots ? lastPH - pivRng * 0.786  : na
+dnGP_lo = hasPivots ? lastPL + pivRng * 0.618  : na  ;  dnGP_hi = hasPivots ? lastPL + pivRng * 0.650 : na
+dn786   = hasPivots ? lastPL + pivRng * 0.786  : na
+
+isCurr    = hasPivots and bar_index > math.max(lastPHBar, lastPLBar)
+upGPt     = isCurr and low  <= upGP_hi and high >= upGP_lo
+dnGPt     = isCurr and high >= dnGP_lo and low  <= dnGP_hi
+up786t    = isCurr and low  <= up786   and high >= up786
+dn786t    = isCurr and high >= dn786   and low  <= dn786
+upGPc     = isCurr and close <= upGP_hi and close >= upGP_lo
+dnGPc     = isCurr and close >= dnGP_lo and close <= dnGP_hi
+up786c    = isCurr and math.abs(close - up786) / up786 <= zone786Tol / 100.0
+dn786c    = isCurr and math.abs(close - dn786) / dn786 <= zone786Tol / 100.0
+
+// TF2 zones
+hasTF2  = not na(tf2PH) and not na(tf2PL)
+tf2Rng  = hasTF2 ? tf2PH - tf2PL : na
+isCurrTF2 = hasTF2 and bar_index > math.max(tf2PHBar, tf2PLBar)
+tf2UpGPt  = showTF2 and isCurrTF2 and hasTF2 and low  <= (tf2PH - tf2Rng * 0.618) and high >= (tf2PH - tf2Rng * 0.650)
+tf2DnGPt  = showTF2 and isCurrTF2 and hasTF2 and high >= (tf2PL + tf2Rng * 0.618) and low  <= (tf2PL + tf2Rng * 0.650)
+tf2Up786t = showTF2 and isCurrTF2 and hasTF2 and low  <= (tf2PH - tf2Rng * 0.786) and high >= (tf2PH - tf2Rng * 0.786)
+tf2Dn786t = showTF2 and isCurrTF2 and hasTF2 and high >= (tf2PL + tf2Rng * 0.786) and low  <= (tf2PL + tf2Rng * 0.786)
+
+// TF3 zones
+hasTF3  = not na(tf3PH) and not na(tf3PL)
+tf3Rng  = hasTF3 ? tf3PH - tf3PL : na
+isCurrTF3 = hasTF3 and bar_index > math.max(tf3PHBar, tf3PLBar)
+tf3UpGPt  = showTF3 and isCurrTF3 and hasTF3 and low  <= (tf3PH - tf3Rng * 0.618) and high >= (tf3PH - tf3Rng * 0.650)
+tf3DnGPt  = showTF3 and isCurrTF3 and hasTF3 and high >= (tf3PL + tf3Rng * 0.618) and low  <= (tf3PL + tf3Rng * 0.650)
+tf3Up786t = showTF3 and isCurrTF3 and hasTF3 and low  <= (tf3PH - tf3Rng * 0.786) and high >= (tf3PH - tf3Rng * 0.786)
+tf3Dn786t = showTF3 and isCurrTF3 and hasTF3 and high >= (tf3PL + tf3Rng * 0.786) and low  <= (tf3PL + tf3Rng * 0.786)
+
+zoneTouch = upGPt  or dnGPt  or up786t  or dn786t
+zoneClose = upGPc  or dnGPc  or up786c  or dn786c
+
+inAnyBullZone = upGPt  or up786t  or tf2UpGPt or tf2Up786t or tf3UpGPt or tf3Up786t
+inAnyBearZone = dnGPt  or dn786t  or tf2DnGPt or tf2Dn786t or tf3DnGPt or tf3Dn786t
+
+// ─── Hammer / Pin Bar Entry Signal ────────────────────────────────────────────
+bodySize    = math.max(math.abs(close - open), syminfo.mintick)
+candleRange = high - low
+lowerWick   = math.min(open, close) - low
+upperWick   = high - math.max(open, close)
+
+isBullHammer = candleRange > 0 and lowerWick >= bodySize * hammerRatio and upperWick <= bodySize and close >= open
+isBearPin    = candleRange > 0 and upperWick >= bodySize * hammerRatio and lowerWick <= bodySize and close <= open
+emaAtClose   = emaConf(close)
+
+bullEntry = isBullHammer and
+            (not requireVol  or volSpike) and
+            (not requireEMA  or emaAtClose) and
+            (not requireZone or inAnyBullZone)
+
+bearEntry = isBearPin and
+            (not requireVol  or volSpike) and
+            (not requireEMA  or emaAtClose) and
+            (not requireZone or inAnyBearZone)
+
+if showEntry and bullEntry
+    label.new(bar_index, low,  "▲ LONG",  style=label.style_label_up,
+              color=colBullEntry, textcolor=color.black, size=labelSizeConv(entrySzIn))
+
+if showEntry and bearEntry
+    label.new(bar_index, high, "▼ SHORT", style=label.style_label_down,
+              color=colBearEntry, textcolor=color.black, size=labelSizeConv(entrySzIn))
+
+// ─── Zone Shapes ──────────────────────────────────────────────────────────────
+if showTouchShape and zoneTouch and not zoneTouch[1]
+    y   = touchAbove ? high * 1.001 : low * 0.999
+    sty = touchAbove ? label.style_label_down : label.style_label_up
+    label.new(bar_index, y, "●", style=sty, color=colTouchShape, textcolor=colTouchShape, size=labelSizeConv(touchSzIn))
+
+if showCloseShape and zoneClose and not zoneClose[1]
+    y   = closeAbove ? high * 1.001 : low * 0.999
+    sty = closeAbove ? label.style_label_down : label.style_label_up
+    label.new(bar_index, y, "◆", style=sty, color=colCloseShape, textcolor=colCloseShape, size=labelSizeConv(closeSzIn))
+
+// ─── Alerts ───────────────────────────────────────────────────────────────────
+zoneLabel = upGPt ? "UP GP" : dnGPt ? "DN GP" : up786t ? "UP 0.786" : dn786t ? "DN 0.786" : "Fib Zone"
+baseMsg   = " | Trend: " + (uptrend ? "UP" : "DN") + " | EMA: " + (emaAtClose ? "Y" : "N") + " | Vol: " + (volSpike ? "Y" : "N") + " | " + str.tostring(close, "#.##")
+
+if zoneTouch  ;  alert("TOUCH | " + zoneLabel + baseMsg, alert.freq_once_per_bar)
+if zoneClose  ;  alert("CLOSE | " + zoneLabel + baseMsg, alert.freq_once_per_bar_close)
+if bullEntry  ;  alert("LONG SETUP | hammer at fib zone" + baseMsg, alert.freq_once_per_bar)
+if bearEntry  ;  alert("SHORT SETUP | pin bar at fib zone" + baseMsg, alert.freq_once_per_bar)
+
+alertcondition(zoneTouch, "Fib Zone — Touch",      "Price touched a fib entry zone")
+alertcondition(zoneClose, "Fib Zone — Close",      "Candle closed inside fib entry zone")
+alertcondition(bullEntry, "Long Setup — Hammer",   "Bull hammer at fib zone")
+alertcondition(bearEntry, "Short Setup — Pin Bar", "Bear pin bar at fib zone")
+
+// ─── Status Table ─────────────────────────────────────────────────────────────
+var table tbl = table.new(tablePosConv(tablePosIn), 2, 6,
+ bgcolor=tblBgCol, border_color=tblBorderCol, border_width=1)
+
+if barstate.islast and showTable
+    table.cell(tbl, 0, 0, "Pivot H",   text_color=tblHdrCol, text_size=size.small)
+    table.cell(tbl, 1, 0, hasPivots ? str.tostring(lastPH,"#.##") : "—", text_color=tblValCol, text_size=size.small)
+    table.cell(tbl, 0, 1, "Pivot L",   text_color=tblHdrCol, text_size=size.small)
+    table.cell(tbl, 1, 1, hasPivots ? str.tostring(lastPL,"#.##") : "—", text_color=tblValCol, text_size=size.small)
+    table.cell(tbl, 0, 2, "Trend",     text_color=tblHdrCol, text_size=size.small)
+    table.cell(tbl, 1, 2, uptrend ? "UP ▲" : "DOWN ▼", text_color=uptrend ? color.lime : color.red, text_size=size.small)
+    table.cell(tbl, 0, 3, "EMA Conf",  text_color=tblHdrCol, text_size=size.small)
+    table.cell(tbl, 1, 3, emaAtClose ? "YES ✓" : "NO", text_color=emaAtClose ? color.lime : tblHdrCol, text_size=size.small)
+    table.cell(tbl, 0, 4, "Vol Spike", text_color=tblHdrCol, text_size=size.small)
+    table.cell(tbl, 1, 4, volSpike ? "YES ✓" : "NO",   text_color=volSpike ? color.purple : tblHdrCol, text_size=size.small)
+    table.cell(tbl, 0, 5, "Zone",      text_color=tblHdrCol, text_size=size.small)
+    table.cell(tbl, 1, 5, zoneTouch ? zoneLabel : "—",  text_color=zoneTouch ? color.yellow : tblHdrCol, text_size=size.small)
