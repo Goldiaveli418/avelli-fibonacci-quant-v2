@@ -208,18 +208,18 @@ isHTF = pivotTF != ""
  lookahead=barmerge.lookahead_off)
 
 // --- Pivot State --------------------------------------------------------------
-var float lastPH    = na
-var int   lastPHBar = 0
-var float lastPL    = na
-var int   lastPLBar = 0
-var float tf2PH     = na
-var int   tf2PHBar  = 0
-var float tf2PL     = na
-var int   tf2PLBar  = 0
-var float tf3PH     = na
-var int   tf3PHBar  = 0
-var float tf3PL     = na
-var int   tf3PLBar  = 0
+var lastPH    = float(na)
+var lastPHBar = 0
+var lastPL    = float(na)
+var lastPLBar = 0
+var tf2PH     = float(na)
+var tf2PHBar  = 0
+var tf2PL     = float(na)
+var tf2PLBar  = 0
+var tf3PH     = float(na)
+var tf3PHBar  = 0
+var tf3PL     = float(na)
+var tf3PLBar  = 0
 
 newHigh = not na(pivHigh)
 newLow  = not na(pivLow)
