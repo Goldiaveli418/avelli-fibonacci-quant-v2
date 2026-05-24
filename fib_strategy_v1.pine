@@ -237,9 +237,7 @@ fibPrice(hi, lo, ratio, isUp) =>
 
 emaConf(price) =>
     t = price * emaTol / 100.0
-    (showEma1 and math.abs(ema1 - price) <= t)
-     or (showEma2 and math.abs(ema2 - price) <= t)
-     or (showEma3 and math.abs(ema3 - price) <= t)
+    (showEma1 and math.abs(ema1 - price) <= t) or (showEma2 and math.abs(ema2 - price) <= t) or (showEma3 and math.abs(ema3 - price) <= t)
 
 fibColor(r) =>
     r == 0.236 ? col236 : r == 0.382 ? col382 : r == 0.5   ? col500 :
@@ -522,15 +520,8 @@ isBullHammer = candleRange > 0 and lowerWick >= bodySize * hammerRatio and upper
 isBearPin    = candleRange > 0 and upperWick >= bodySize * hammerRatio and lowerWick <= bodySize and close <= open
 emaAtClose   = emaConf(close)
 
-bullEntry = isBullHammer
- and (not requireVol  or volSpike)
- and (not requireEMA  or emaAtClose)
- and (not requireZone or inAnyBullZone)
-
-bearEntry = isBearPin
- and (not requireVol  or volSpike)
- and (not requireEMA  or emaAtClose)
- and (not requireZone or inAnyBearZone)
+bullEntry = isBullHammer and (not requireVol or volSpike) and (not requireEMA or emaAtClose) and (not requireZone or inAnyBullZone)
+bearEntry = isBearPin    and (not requireVol or volSpike) and (not requireEMA or emaAtClose) and (not requireZone or inAnyBearZone)
 
 if showEntry and bullEntry
     label.new(bar_index, low,  "▲ LONG",  style=label.style_label_up,
