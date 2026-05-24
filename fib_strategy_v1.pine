@@ -208,16 +208,25 @@ isHTF = pivotTF != ""
  lookahead=barmerge.lookahead_off)
 
 // ─── Pivot State ──────────────────────────────────────────────────────────────
-var float lastPH = na  ;  var int lastPHBar = 0
-var float lastPL = na  ;  var int lastPLBar = 0
-var float tf2PH  = na  ;  var int tf2PHBar  = 0
-var float tf2PL  = na  ;  var int tf2PLBar  = 0
-var float tf3PH  = na  ;  var int tf3PHBar  = 0
-var float tf3PL  = na  ;  var int tf3PLBar  = 0
+var float lastPH    = na
+var int   lastPHBar = 0
+var float lastPL    = na
+var int   lastPLBar = 0
+var float tf2PH     = na
+var int   tf2PHBar  = 0
+var float tf2PL     = na
+var int   tf2PLBar  = 0
+var float tf3PH     = na
+var int   tf3PHBar  = 0
+var float tf3PL     = na
+var int   tf3PLBar  = 0
 
-newHigh  = not na(pivHigh)  ;  newLow  = not na(pivLow)
-tf2NewH  = not na(pivH_TF2) ;  tf2NewL = not na(pivL_TF2)
-tf3NewH  = not na(pivH_TF3) ;  tf3NewL = not na(pivL_TF3)
+newHigh = not na(pivHigh)
+newLow  = not na(pivLow)
+tf2NewH = not na(pivH_TF2)
+tf2NewL = not na(pivL_TF2)
+tf3NewH = not na(pivH_TF3)
+tf3NewL = not na(pivL_TF3)
 
 // ─── Fib Helpers ──────────────────────────────────────────────────────────────
 var fibRatios = array.from(0.0, 0.236, 0.382, 0.5, 0.618, 0.65, 0.786, 0.886, 1.0)
@@ -249,24 +258,39 @@ buildLabel(ratio, name, price, isUp) =>
      (showFibPrice ? "  " + str.tostring(price, "#.####") : "")
 
 // ─── Drawing Storage ──────────────────────────────────────────────────────────
-var line[]  allLines = array.new_line()  ;  var label[] allLbs  = array.new_label()  ;  var box[] allBoxes = array.new_box()
-var line[]  tf2Lines = array.new_line()  ;  var label[] tf2Lbs  = array.new_label()  ;  var box[] tf2Boxes = array.new_box()
-var line[]  tf3Lines = array.new_line()  ;  var label[] tf3Lbs  = array.new_label()  ;  var box[] tf3Boxes = array.new_box()
+var line[]  allLines = array.new_line()
+var label[] allLbs   = array.new_label()
+var box[]   allBoxes = array.new_box()
+var line[]  tf2Lines = array.new_line()
+var label[] tf2Lbs   = array.new_label()
+var box[]   tf2Boxes = array.new_box()
+var line[]  tf3Lines = array.new_line()
+var label[] tf3Lbs   = array.new_label()
+var box[]   tf3Boxes = array.new_box()
 
 // Pivot ray vars
-var line  pivHRayLine = na  ;  var label pivHRayLbl = na
-var line  pivLRayLine = na  ;  var label pivLRayLbl = na
-var line  tf2HRay = na      ;  var label tf2HLbl    = na
-var line  tf2LRay = na      ;  var label tf2LLbl    = na
-var line  tf3HRay = na      ;  var label tf3HLbl    = na
-var line  tf3LRay = na      ;  var label tf3LLbl    = na
+var line  pivHRayLine = na
+var label pivHRayLbl  = na
+var line  pivLRayLine = na
+var label pivLRayLbl  = na
+var line  tf2HRay = na
+var label tf2HLbl = na
+var line  tf2LRay = na
+var label tf2LLbl = na
+var line  tf3HRay = na
+var label tf3HLbl = na
+var line  tf3LRay = na
+var label tf3LLbl = na
 
 clearArrays(lns, lbs, bxs) =>
-    for ln in lns  ;  line.delete(ln)
+    for ln in lns
+        line.delete(ln)
     array.clear(lns)
-    for lb in lbs  ;  label.delete(lb)
+    for lb in lbs
+        label.delete(lb)
     array.clear(lbs)
-    for bx in bxs  ;  box.delete(bx)
+    for bx in bxs
+        box.delete(bx)
     array.clear(bxs)
 
 // ─── Primary Draw Functions ───────────────────────────────────────────────────
@@ -374,52 +398,70 @@ if (newHigh or newLow) and not na(lastPH) and not na(lastPL)
     clearArrays(allLines, allLbs, allBoxes)
     drawUp = fibMode == "Both" or (fibMode == "With Trend"    and     uptrend) or (fibMode == "Against Trend" and not uptrend)
     drawDn = fibMode == "Both" or (fibMode == "With Trend"    and not uptrend) or (fibMode == "Against Trend" and     uptrend)
-    if drawUp  ;  drawFibSet(lastPH, lastPL, true,  lastPHBar, lastPLBar)
-    if drawDn  ;  drawFibSet(lastPH, lastPL, false, lastPHBar, lastPLBar)
+    if drawUp
+        drawFibSet(lastPH, lastPL, true,  lastPHBar, lastPLBar)
+    if drawDn
+        drawFibSet(lastPH, lastPL, false, lastPHBar, lastPLBar)
 
 // ─── Update TF2 Pivots ────────────────────────────────────────────────────────
 if tf2NewH
-    tf2PH := pivH_TF2  ;  tf2PHBar := bar_index
+    tf2PH    := pivH_TF2
+    tf2PHBar := bar_index
     if showTF2 and showTF2Ray
-        line.delete(tf2HRay)  ;  label.delete(tf2HLbl)
+        line.delete(tf2HRay)
+        label.delete(tf2HLbl)
         [ln, lb] = drawOvRay(tf2PH, true, tf2Alpha, tf2Width, tf2Label)
-        tf2HRay := ln  ;  tf2HLbl := lb
+        tf2HRay := ln
+        tf2HLbl := lb
 
 if tf2NewL
-    tf2PL := pivL_TF2  ;  tf2PLBar := bar_index
+    tf2PL    := pivL_TF2
+    tf2PLBar := bar_index
     if showTF2 and showTF2Ray
-        line.delete(tf2LRay)  ;  label.delete(tf2LLbl)
+        line.delete(tf2LRay)
+        label.delete(tf2LLbl)
         [ln, lb] = drawOvRay(tf2PL, false, tf2Alpha, tf2Width, tf2Label)
-        tf2LRay := ln  ;  tf2LLbl := lb
+        tf2LRay := ln
+        tf2LLbl := lb
 
 if showTF2 and (tf2NewH or tf2NewL) and not na(tf2PH) and not na(tf2PL)
     clearArrays(tf2Lines, tf2Lbs, tf2Boxes)
     drawUp2 = fibMode == "Both" or (fibMode == "With Trend" and uptrend) or (fibMode == "Against Trend" and not uptrend)
     drawDn2 = fibMode == "Both" or (fibMode == "With Trend" and not uptrend) or (fibMode == "Against Trend" and uptrend)
-    if drawUp2  ;  drawOverlay(tf2PH, tf2PL, true,  tf2PHBar, tf2PLBar, tf2Lines, tf2Lbs, tf2Boxes, tf2Width, tf2Alpha, showTF2Lbl, showTF2Box, tf2Label)
-    if drawDn2  ;  drawOverlay(tf2PH, tf2PL, false, tf2PHBar, tf2PLBar, tf2Lines, tf2Lbs, tf2Boxes, tf2Width, tf2Alpha, showTF2Lbl, showTF2Box, tf2Label)
+    if drawUp2
+        drawOverlay(tf2PH, tf2PL, true,  tf2PHBar, tf2PLBar, tf2Lines, tf2Lbs, tf2Boxes, tf2Width, tf2Alpha, showTF2Lbl, showTF2Box, tf2Label)
+    if drawDn2
+        drawOverlay(tf2PH, tf2PL, false, tf2PHBar, tf2PLBar, tf2Lines, tf2Lbs, tf2Boxes, tf2Width, tf2Alpha, showTF2Lbl, showTF2Box, tf2Label)
 
 // ─── Update TF3 Pivots ────────────────────────────────────────────────────────
 if tf3NewH
-    tf3PH := pivH_TF3  ;  tf3PHBar := bar_index
+    tf3PH    := pivH_TF3
+    tf3PHBar := bar_index
     if showTF3 and showTF3Ray
-        line.delete(tf3HRay)  ;  label.delete(tf3HLbl)
+        line.delete(tf3HRay)
+        label.delete(tf3HLbl)
         [ln, lb] = drawOvRay(tf3PH, true, tf3Alpha, tf3Width, tf3Label)
-        tf3HRay := ln  ;  tf3HLbl := lb
+        tf3HRay := ln
+        tf3HLbl := lb
 
 if tf3NewL
-    tf3PL := pivL_TF3  ;  tf3PLBar := bar_index
+    tf3PL    := pivL_TF3
+    tf3PLBar := bar_index
     if showTF3 and showTF3Ray
-        line.delete(tf3LRay)  ;  label.delete(tf3LLbl)
+        line.delete(tf3LRay)
+        label.delete(tf3LLbl)
         [ln, lb] = drawOvRay(tf3PL, false, tf3Alpha, tf3Width, tf3Label)
-        tf3LRay := ln  ;  tf3LLbl := lb
+        tf3LRay := ln
+        tf3LLbl := lb
 
 if showTF3 and (tf3NewH or tf3NewL) and not na(tf3PH) and not na(tf3PL)
     clearArrays(tf3Lines, tf3Lbs, tf3Boxes)
     drawUp3 = fibMode == "Both" or (fibMode == "With Trend" and uptrend) or (fibMode == "Against Trend" and not uptrend)
     drawDn3 = fibMode == "Both" or (fibMode == "With Trend" and not uptrend) or (fibMode == "Against Trend" and uptrend)
-    if drawUp3  ;  drawOverlay(tf3PH, tf3PL, true,  tf3PHBar, tf3PLBar, tf3Lines, tf3Lbs, tf3Boxes, tf3Width, tf3Alpha, showTF3Lbl, showTF3Box, tf3Label)
-    if drawDn3  ;  drawOverlay(tf3PH, tf3PL, false, tf3PHBar, tf3PLBar, tf3Lines, tf3Lbs, tf3Boxes, tf3Width, tf3Alpha, showTF3Lbl, showTF3Box, tf3Label)
+    if drawUp3
+        drawOverlay(tf3PH, tf3PL, true,  tf3PHBar, tf3PLBar, tf3Lines, tf3Lbs, tf3Boxes, tf3Width, tf3Alpha, showTF3Lbl, showTF3Box, tf3Label)
+    if drawDn3
+        drawOverlay(tf3PH, tf3PL, false, tf3PHBar, tf3PLBar, tf3Lines, tf3Lbs, tf3Boxes, tf3Width, tf3Alpha, showTF3Lbl, showTF3Box, tf3Label)
 
 // ─── Zone Math (all 3 TFs) ────────────────────────────────────────────────────
 hasPivots = not na(lastPH) and not na(lastPL)
